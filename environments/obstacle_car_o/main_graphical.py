@@ -1,31 +1,26 @@
 import sys
 
-import numpy as np
 import pygame
 import pygame.locals as pgl
+import numpy as np
 
-from environments.obstacle_car.environment_vec import Environment_Vec as Environment
-
-canvas_size = (500, 500)
-canvas = np.zeros([*canvas_size, 3])
+import environments.obstacle_car_o.params as params
+from environments.obstacle_car_o.environment_graphical import Environment_Graphical
 
 pygame.init()
 clock = pygame.time.Clock()
-window = pygame.display.set_mode(canvas_size)
+window = pygame.display.set_mode(params.screen_size)
 pygame.display.set_caption("env")
 
 mouse_x, mouse_y = 0, 0
 
-env = Environment()
+env = Environment_Graphical()
 env.reset()
-total_reward = 0
 
 while True:
 
-    canvas[:] = 0
-    env.render_to_canvas(canvas)
-
-    surf = pygame.surfarray.make_surface((canvas * 255).astype(np.uint8))
+    frame = env.render()
+    surf = pygame.surfarray.make_surface(frame)
     window.blit(surf, (0, 0))
 
     acceleration = 0
@@ -38,8 +33,6 @@ while True:
 
         if event.type == pgl.KEYDOWN:
             if event.key == pgl.K_SPACE:
-                print(total_reward)
-                total_reward = 0
                 env.reset()
 
     keys = pygame.key.get_pressed()
@@ -53,7 +46,7 @@ while True:
         steering_angle = 1
 
     observation, reward, done = env.make_action((acceleration, steering_angle))
-    total_reward += reward
+    print(reward)
     if done:
         print("collision")
 

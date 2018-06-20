@@ -130,8 +130,35 @@ class Runner(AbstractEnvRunner):
             delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
             mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
+
+        #idx = 15
+        #end_idx = np.where(mb_dones)[0][0]
+        #gae = self.compute_gae(mb_rewards[idx:end_idx, 0], mb_values[idx:end_idx, 0], True)
+        #diff = mb_advs[idx] - gae
+        #print(diff, gae)
+
         return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
             mb_states, epinfos)
+
+    def compute_gae(self, rewards, values, terminal):
+        length = len(rewards)
+
+        # delta functions are 1 step TD lambda
+        padded_values = np.zeros((length + 1,))
+        padded_values[:-1] = values
+        padded_values[-1] = values[-1] * (1 - terminal)
+
+        deltas = rewards + self.gamma * padded_values[1:] - padded_values[:-1]
+
+        # gae advantage uses a weighted sum of deltas,
+        # compare (16) in the gae paper
+        discount_factor = self.gamma * self.lam
+        weights = np.geomspace(1, discount_factor ** (len(deltas)-1), len(deltas))
+        weighted_series = deltas * weights
+        advantage_gae = weighted_series.sum()
+
+        return advantage_gae
+
 # obs, returns, masks, actions, values, neglogpacs, states = runner.run()
 def sf01(arr):
     """

@@ -1,10 +1,19 @@
-import gym
 import numpy as np
-from gym import spaces
-from gym.utils import seeding
+import pygame
 
-import environments.obstacle_car.params as params
-from environments.obstacle_car.car import Car
+import environments.obstacle_car_o.colors as colors
+import environments.obstacle_car_o.params_radial as params
+import environments.obstacle_car_o.utils as utils
+
+from np_draw.sprite import Sprite
+from environments.obstacle_car_o.car import Car
+
+from skimage.io import imread
+from skimage.transform import resize
+
+import gym
+from gym import spaces, logger
+from gym.utils import seeding
 
 
 class Environment_Vec(gym.Env):
@@ -43,57 +52,6 @@ class Environment_Vec(gym.Env):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
-
-    def render_to_canvas(self, canvas):
-        x_coords = np.arange(canvas.shape[0])
-        y_coords = np.arange(canvas.shape[1])
-        x, y = np.meshgrid(x_coords, y_coords)
-        coords = np.stack([x, y], axis=-1)
-
-        observation = self.get_observation()
-
-        # first observation is speed, throw it away
-        # the rest has to be rescaled to the original range
-        observation = observation[1:]
-
-        # then we organize it as vectors
-        observation = observation.reshape((-1, 2))
-
-        # if the environment is based on polar coordinates, we transform them into cartesian
-        if self.polar_coords:
-            distances = observation[:, 0]
-            angles = observation[:, 1]
-            x = distances * np.cos(angles)
-            y = distances * np.sin(angles)
-            observation = np.stack([y, x], axis=-1)
-
-        observation = observation * params.distance_rescale
-
-        offset = np.array([canvas.shape[0] // 2, canvas.shape[1] // 2])
-        observation = (observation + offset).astype(np.int)
-
-        goal = observation[0]
-        obstacles = observation[1:]
-
-        goal = np.array(canvas.shape[:2]) - goal
-        obstacles = np.array(canvas.shape[:2]) - obstacles
-
-        dist = coords - goal
-        dist = np.linalg.norm(dist, axis=-1)
-        area = np.where(dist < self.initial_dist * params.max_dist)
-
-        canvas[area[1], area[0], 2] = 0.5
-
-        if np.all(goal > 0) and np.all(goal < canvas.shape[:2]):
-            canvas[goal[0] - 5:goal[0] + 5, goal[1] - 5:goal[1] + 5, :] = 1
-
-        for obstacle in obstacles:
-            if np.all(obstacle > 0) and np.all(obstacle < canvas.shape[:2]):
-                canvas[obstacle[0] - 5:obstacle[0] + 5, obstacle[1] - 5:obstacle[1] + 5, 0] = 1
-
-        # a green dot at the center of the canvas, for our car
-        canvas[offset[0] - 5:offset[0] + 5, offset[1] - 5:offset[1] + 5, 1] = 1
-        return canvas
 
     def reset(self):
 

@@ -17,6 +17,7 @@ def train(env_id, num_timesteps, seed):
     config = tf.ConfigProto(allow_soft_placement=True,
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
+    config.gpu_options.allow_growth=True
     tf.Session(config=config).__enter__()
 
     def make_env():
@@ -31,7 +32,7 @@ def train(env_id, num_timesteps, seed):
     set_global_seeds(seed)
     policy = MlpPolicy
     model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
-                       lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
+                       lam=0.95, gamma=0.99, noptepochs=1000, log_interval=1,
                        ent_coef=0.0,
                        lr=3e-4,
                        cliprange=0.2,

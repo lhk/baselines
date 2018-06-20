@@ -1,16 +1,18 @@
-import gym
-from gym import spaces
 import numpy as np
-from gym.utils import seeding
+import pygame
+
+import environments.obstacle_car_o.colors as colors
+import environments.obstacle_car_o.params as params
+import environments.obstacle_car_o.utils as utils
+
+from np_draw.sprite import Sprite
+from environments.obstacle_car_o.car import Car
+
 from skimage.io import imread
 from skimage.transform import resize
 
-import environments.obstacle_car.params as params
-from environments.obstacle_car.car import Car
-from np_draw.sprite import Sprite
 
-
-class Environment_Graphical(gym.Env):
+class Environment_Graphical():
     def __init__(self):
 
         # fillcolor
@@ -31,7 +33,7 @@ class Environment_Graphical(gym.Env):
         self.car_mask = np.zeros((*params.screen_size,), dtype=np.bool)
 
         # load images and set up their masks
-        car_img_transp = imread("environments/obstacle_car/assets/car.png")
+        car_img_transp = imread("environments/obstacle_car_o/assets/car.png")
         car_img_transp = np.transpose(car_img_transp, [1, 0, 2])
         car_img_transp = resize(car_img_transp, params.car_size)
         car_img = car_img_transp[:, :, :3]  # cut away alpha
@@ -59,13 +61,6 @@ class Environment_Graphical(gym.Env):
 
         self.actions = [[0, 0], [0, -1], [0, 1], [1, 0]]
         self.num_actions = len(self.actions)
-        self.action_space = spaces.Discrete(self.num_actions)
-
-        self.seed()
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def reset(self):
 
@@ -78,13 +73,13 @@ class Environment_Graphical(gym.Env):
 
         # set up car, obstacle and goal positions
         car_position = np.array([0, 0], dtype=np.float64)
-        car_position[0] = self.np_random.uniform(params.car_size[0] / 2, params.screen_size[0] - params.car_size[0] / 2)
+        car_position[0] = np.random.uniform(params.car_size[0] / 2, params.screen_size[0] - params.car_size[0] / 2)
         car_position[1] = params.screen_size[1] - params.car_size[1] / 2
         self.car_sprite.set_position(car_position)
         self.car.pos = car_position
 
         goal_position = np.array([0, 0])
-        goal_position[0] = self.np_random.uniform(0, params.screen_size[0] - params.goal_size[0])
+        goal_position[0] = np.random.uniform(0, params.screen_size[0] - params.goal_size[0])
         goal_position[1] = params.goal_size[1] / 2
         self.goal_sprite.set_position(goal_position)
 
@@ -93,8 +88,8 @@ class Environment_Graphical(gym.Env):
         self.obstacle_positions = []
         for i in range(params.num_obstacles):
             while True:
-                obs_x = self.np_random.rand() * params.screen_size[0]
-                obs_y = params.screen_size[1] * 1 / 3 * (1 + self.np_random.rand())
+                obs_x = np.random.random() * params.screen_size[0]
+                obs_y = params.screen_size[1] * 1 / 3 * (1 + np.random.random())
                 obstacle_position = np.array([obs_x, obs_y])
                 # obstacle must be away from car and goal
                 car_dist = np.linalg.norm(obstacle_position - self.car.pos)
@@ -119,12 +114,7 @@ class Environment_Graphical(gym.Env):
         self.background[self.obstacle_mask] = self.obstacle_layer[self.obstacle_mask]
         self.background[self.goal_mask] = self.goal_layer[self.goal_mask]
 
-        return self.render()
-
     def render(self):
-        # TODO: after inheriting from gym.Env this is supposed to do something different
-        # refactor to gym interface
-
         # reset canvas and foreground,
         # background is not rerendered
         self.canvas[:] = self.background
@@ -140,11 +130,9 @@ class Environment_Graphical(gym.Env):
         return self.canvas
 
     def step(self, action):
-        assert self.action_space.contains(action)
         # internally the action is not a number, but a combination of acceleration and steering
         action = self.actions[action]
-        obs, rew, done = self.make_action(action)
-        return obs, rew, done, {}
+        return self.make_action(action)
 
     def make_action(self, action):
         acceleration, steering_angle = action
@@ -210,4 +198,4 @@ class Environment_Graphical(gym.Env):
 
     def sample_action(self):
         # for atari, the actions are simply numbers
-        return self.np_random.choice(self.num_actions)
+        return np.random.choice(self.num_actions)
