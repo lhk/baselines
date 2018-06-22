@@ -31,12 +31,20 @@ def train(env_id, num_timesteps, seed):
 
     set_global_seeds(seed)
     policy = MlpPolicy
+    #model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
+    #                   lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
+    #                   ent_coef=0.0,
+    #                   lr=3e-4,
+    #                   cliprange=0.2,
+    #                   total_timesteps=num_timesteps)
+
     model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
-                       lam=0.95, gamma=0.99, noptepochs=1000, log_interval=1,
+                       lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
                        ent_coef=0.0,
                        lr=3e-4,
                        cliprange=0.2,
                        total_timesteps=num_timesteps)
+
 
     return model, env
 
@@ -44,7 +52,7 @@ def train(env_id, num_timesteps, seed):
 def main():
     args = mujoco_arg_parser().parse_args()
     logger.configure()
-    model, env = train(args.env, num_timesteps=args.num_timesteps, seed=args.seed)
+    model, env = train(args.env, num_timesteps=int(3.6e7), seed=args.seed)
 
     if args.play:
         logger.log("Running trained model")
