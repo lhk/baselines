@@ -26,10 +26,10 @@ class Environment_Vec(gym.Env):
         self.action_space = spaces.Discrete(self.num_actions)
         if self.polar_coords:
             min = np.array([params.min_speed,
-                           *[0,-np.pi]*3])
+                           *[0,-np.pi]*(params.num_obstacles+1)])
 
             max = np.array([params.max_speed,
-                           *[np.finfo(np.float32).max,+np.pi]*3])
+                           *[np.finfo(np.float32).max,+np.pi]*(params.num_obstacles+1)])
         else:
             min = np.array([params.min_speed,
                             *[-np.finfo(np.float32).max, -np.finfo(np.float32).max] * 3])
