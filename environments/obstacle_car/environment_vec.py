@@ -20,22 +20,24 @@ class Environment_Vec(gym.Env):
         self.goal_pos = default_pos
         self.goal_dim = np.linalg.norm(params.goal_size)
 
+        self.obs_dim = np.linalg.norm(params.obstacle_size)
+
         self.actions = [[0, 0], [0, -1], [0, 1], [1, 0]]
         self.num_actions = len(self.actions)
 
         self.action_space = spaces.Discrete(self.num_actions)
         if self.polar_coords:
             min = np.array([params.min_speed,
-                           *[0,-np.pi]*(params.num_obstacles+1)])
+                            *[0, -np.pi] * (params.num_obstacles +1)])
 
             max = np.array([params.max_speed,
-                           *[np.finfo(np.float32).max,+np.pi]*(params.num_obstacles+1)])
+                            *[np.finfo(np.float32).max, +np.pi] * (params.num_obstacles +1)])
         else:
             min = np.array([params.min_speed,
-                            *[-np.finfo(np.float32).max, -np.finfo(np.float32).max] * 3])
+                            *[-np.finfo(np.float32).max, -np.finfo(np.float32).max] * (params.num_obstacles +1)])
 
             max = np.array([params.max_speed,
-                            *[np.finfo(np.float32).max, np.finfo(np.float32).max] * 3])
+                            *[np.finfo(np.float32).max, np.finfo(np.float32).max] * (params.num_obstacles +1)])
 
         self.observation_space = spaces.Box(min, max)
         self.seed()
@@ -51,6 +53,7 @@ class Environment_Vec(gym.Env):
         coords = np.stack([x, y], axis=-1)
 
         observation = self.get_observation()
+        print(observation)
 
         # first observation is speed, throw it away
         # the rest has to be rescaled to the original range
@@ -81,7 +84,6 @@ class Environment_Vec(gym.Env):
         dist = coords - goal
         dist = np.linalg.norm(dist, axis=-1)
         area = np.where(dist < self.initial_dist * params.max_dist)
-
         canvas[area[1], area[0], 2] = 0.5
 
         if np.all(goal > 0) and np.all(goal < canvas.shape[:2]):
@@ -105,12 +107,14 @@ class Environment_Vec(gym.Env):
 
         # set up car, obstacle and goal positions
         car_position = np.array([0, 0], dtype=np.float64)
-        car_position[0] = self.np_random.uniform(params.car_size[0] / 2, params.screen_size[0] - params.car_size[0] / 2)
+        car_position[0] = params.screen_size[
+                              0] // 2  # self.np_random.uniform(params.car_size[0] / 2, params.screen_size[0] - params.car_size[0] / 2)
         car_position[1] = params.screen_size[1] - params.car_size[1] / 2
         self.car.pos = car_position
 
         goal_position = np.array([0, 0])
-        goal_position[0] = self.np_random.uniform(0, params.screen_size[0] - params.goal_size[0])
+        goal_position[0] = params.screen_size[
+                               0] // 2  # self.np_random.uniform(0, params.screen_size[0] - params.goal_size[0])
         goal_position[1] = params.goal_size[1] / 2
         self.goal_pos = goal_position
 
@@ -120,13 +124,13 @@ class Environment_Vec(gym.Env):
         self.initial_dist = np.linalg.norm(self.car.pos - self.goal_pos)
 
         # minimum distance an obstacle needs to have from car and goal
-        min_dist = (1.5 * self.car_dim + min(params.goal_size))
+        min_dist = (1.5 * self.car_dim + self.goal_dim)
 
         self.obstacle_positions = []
         for i in range(params.num_obstacles):
             while True:
-                obs_x = self.np_random.rand() * params.screen_size[0]
-                obs_y = params.screen_size[1] * 1 / 3 * (1 + self.np_random.rand())
+                obs_x = params.screen_size[0] // 2 + (self.np_random.rand() - 0.5) * params.obs_x_spread
+                obs_y = params.screen_size[1] * self.np_random.rand()
                 obstacle_position = np.array([obs_x, obs_y])
                 # obstacle must be away from car and goal
                 car_dist = np.linalg.norm(obstacle_position - self.car.pos)
@@ -163,6 +167,8 @@ class Environment_Vec(gym.Env):
             distances = distances / params.distance_rescale
             angles = np.arctan2(targets[:, 0], targets[:, 1])
             distance_angles = np.array(list(zip(distances, angles)))
+            idx_sorted = np.argsort(distance_angles[1:], axis=0)[:,0]
+            distance_angles[1:] = distance_angles[1:][idx_sorted]
             observation_vector = np.stack([self.car.speed, *distance_angles.flatten()])
         else:
             targets = targets / params.distance_rescale
@@ -191,6 +197,12 @@ class Environment_Vec(gym.Env):
         observation_vector = self.get_observation()
         targets = observation_vector[1:].reshape((-1, 2))
 
+        relative_goal_position = self.car.pos - self.goal_pos
+        x_distance = abs(relative_goal_position[0])
+
+        if x_distance > params.x_tolerance:
+            return observation_vector, params.reward_collision, True
+
         if self.polar_coords:
             distances = targets[:, 0]
             distances = distances * params.distance_rescale
@@ -203,11 +215,11 @@ class Environment_Vec(gym.Env):
             return observation_vector, params.reward_collision, True
 
         rel_goal_dist = distances[0]
-        if rel_goal_dist < self.car_dim:
+        if rel_goal_dist < 1 / 2 * (self.car_dim + self.goal_dim):
             return observation_vector, params.reward_goal, True
 
         rel_obs_dist = distances[1:]
-        if np.any(rel_obs_dist < self.car_dim):
+        if np.any(rel_obs_dist < 1 / 2 * (self.car_dim + self.obs_dim)):
             return observation_vector, params.reward_collision, True
 
         self.steps += 1

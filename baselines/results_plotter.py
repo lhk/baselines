@@ -77,7 +77,7 @@ def main():
     parser.add_argument('--dirs', help='List of log directories', nargs = '*', default=['./log'])
     parser.add_argument('--num_timesteps', type=int, default=int(10e6))
     parser.add_argument('--xaxis', help = 'Varible on X-axis', default = X_TIMESTEPS)
-    parser.add_argument('--task_name', help = 'Title of plot', default = 'Breakout')
+    parser.add_argument('--task_name', help = 'Title of plot', default = 'Trailer')
     args = parser.parse_args()
     args.dirs = [os.path.abspath(dir) for dir in args.dirs]
     plot_results(args.dirs, args.num_timesteps, args.xaxis, args.task_name)

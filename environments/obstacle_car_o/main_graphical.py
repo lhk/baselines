@@ -4,8 +4,8 @@ import pygame
 import pygame.locals as pgl
 import numpy as np
 
-import environments.obstacle_car_o.params as params
-from environments.obstacle_car_o.environment_graphical import Environment_Graphical
+import environments.obstacle_car.params as params
+from environments.obstacle_car.environment_graphical import Environment_Graphical
 
 pygame.init()
 clock = pygame.time.Clock()

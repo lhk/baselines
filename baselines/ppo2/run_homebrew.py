@@ -52,7 +52,7 @@ def train(env_id, num_timesteps, seed):
 def main():
     args = mujoco_arg_parser().parse_args()
     logger.configure()
-    model, env = train(args.env, num_timesteps=int(3.6e7), seed=args.seed)
+    model, env = train(args.env, num_timesteps=int(50000000), seed=args.seed)
 
     if args.play:
         logger.log("Running trained model")
