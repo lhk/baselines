@@ -5,7 +5,7 @@ from baselines import bench, logger
 from environments.obstacle_car.environment_vec import Environment_Vec
 
 
-def train(env_id, num_timesteps, seed):
+def train(params, num_timesteps, seed):
     from baselines.common import set_global_seeds
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.ppo2 import ppo2
@@ -22,7 +22,7 @@ def train(env_id, num_timesteps, seed):
 
     def make_env():
         #env = gym.make(env_id)
-        env = Environment_Vec(polar_coords=True)
+        env = Environment_Vec(params, polar_coords=True)
         env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
         return env
 
@@ -49,19 +49,27 @@ def train(env_id, num_timesteps, seed):
     return model, env
 
 
+import environments.obstacle_car.params as params
+import itertools
+
 def main():
     args = mujoco_arg_parser().parse_args()
-    logger.configure()
-    model, env = train(args.env, num_timesteps=int(50000000), seed=args.seed)
 
-    if args.play:
-        logger.log("Running trained model")
-        obs = np.zeros((env.num_envs,) + env.observation_space.shape)
-        obs[:] = env.reset()
-        while True:
-            actions = model.step(obs)[0]
-            obs[:]  = env.step(actions)[0]
-            env.render()
+    Rs = [100, 200, 400, 800]
+    ds = [0.000, 0.005]
+    obs = [0, 4, 8]
+
+    for R, d, o in itertools.product(Rs, ds, obs):
+        print("training on {}, {}, {}".format(R, d, o))
+        params.R = R
+        params.screen_size = (R, R)
+        params.num_obstacles = o
+        params.distance_rescale = R / 4  # only used in radial environment
+        params.x_tolerance = R / 4
+
+        logger.configure(dir="/tmp/car_{}_{}_{}".format(R, d, o))
+        model, env = train(params, num_timesteps=int(50000), seed=args.seed)
+
 
 
 if __name__ == '__main__':

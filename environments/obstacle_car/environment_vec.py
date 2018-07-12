@@ -3,18 +3,18 @@ import numpy as np
 from gym import spaces
 from gym.utils import seeding
 
-import environments.obstacle_car.params as params
 from environments.obstacle_car.car import Car
 
 
 class Environment_Vec(gym.Env):
-    def __init__(self, polar_coords=True):
+    def __init__(self, params, polar_coords=True):
 
+        self.params = params
         self.polar_coords = polar_coords
 
         # the position will be overwritten later
         default_pos = np.zeros((2,))
-        self.car = Car(default_pos, 0, 0, params)
+        self.car = Car(default_pos, 0, 0, self.params)
         self.car_dim = np.linalg.norm(params.car_size)
 
         self.goal_pos = default_pos
@@ -70,7 +70,7 @@ class Environment_Vec(gym.Env):
             y = distances * np.sin(angles)
             observation = np.stack([y, x], axis=-1)
 
-        observation = observation * params.distance_rescale
+        observation = observation *self.params.distance_rescale
 
         offset = np.array([canvas.shape[0] // 2, canvas.shape[1] // 2])
         observation = (observation + offset).astype(np.int)
@@ -83,7 +83,7 @@ class Environment_Vec(gym.Env):
 
         dist = coords - goal
         dist = np.linalg.norm(dist, axis=-1)
-        area = np.where(dist < self.initial_dist * params.max_dist)
+        area = np.where(dist < self.initial_dist *self.params.max_dist)
         canvas[area[1], area[0], 2] = 0.5
 
         if np.all(goal > 0) and np.all(goal < canvas.shape[:2]):
@@ -107,15 +107,14 @@ class Environment_Vec(gym.Env):
 
         # set up car, obstacle and goal positions
         car_position = np.array([0, 0], dtype=np.float64)
-        car_position[0] = params.screen_size[
-                              0] // 2  # self.np_random.uniform(params.car_size[0] / 2, params.screen_size[0] - params.car_size[0] / 2)
-        car_position[1] = params.screen_size[1] - params.car_size[1] / 2
+        car_position[0] =self.params.screen_size[0] // 2  # self.np_random.uniform(params.car_size[0] / 2,self.params.screen_size[0] -self.params.car_size[0] / 2)
+        car_position[1] =self.params.screen_size[1] -self.params.car_size[1] / 2
         self.car.pos = car_position
 
         goal_position = np.array([0, 0])
-        goal_position[0] = params.screen_size[
-                               0] // 2  # self.np_random.uniform(0, params.screen_size[0] - params.goal_size[0])
-        goal_position[1] = params.goal_size[1] / 2
+        goal_position[0] =self.params.screen_size[
+                               0] // 2  # self.np_random.uniform(0,self.params.screen_size[0] -self.params.goal_size[0])
+        goal_position[1] =self.params.goal_size[1] / 2
         self.goal_pos = goal_position
 
         # if the car gets too far away from the goal,
@@ -127,10 +126,10 @@ class Environment_Vec(gym.Env):
         min_dist = (1.5 * self.car_dim + self.goal_dim)
 
         self.obstacle_positions = []
-        for i in range(params.num_obstacles):
+        for i in range(self.params.num_obstacles):
             while True:
-                obs_x = params.screen_size[0] // 2 + (self.np_random.rand() - 0.5) * params.obs_x_spread
-                obs_y = params.screen_size[1] * self.np_random.rand()
+                obs_x =self.params.screen_size[0] // 2 + (self.np_random.rand() - 0.5) *self.params.obs_x_spread
+                obs_y =self.params.screen_size[1] * self.np_random.rand()
                 obstacle_position = np.array([obs_x, obs_y])
                 # obstacle must be away from car and goal
                 car_dist = np.linalg.norm(obstacle_position - self.car.pos)
@@ -164,14 +163,14 @@ class Environment_Vec(gym.Env):
 
         if self.polar_coords:
             distances = np.linalg.norm(targets, axis=1)
-            distances = distances / params.distance_rescale
+            distances = distances /self.params.distance_rescale
             angles = np.arctan2(targets[:, 0], targets[:, 1])
             distance_angles = np.array(list(zip(distances, angles)))
             idx_sorted = np.argsort(distance_angles[1:], axis=0)[:,0]
             distance_angles[1:] = distance_angles[1:][idx_sorted]
             observation_vector = np.stack([self.car.speed, *distance_angles.flatten()])
         else:
-            targets = targets / params.distance_rescale
+            targets = targets /self.params.distance_rescale
             observation_vector = np.stack([self.car.speed, *targets.flatten()])
 
         return observation_vector
@@ -190,9 +189,9 @@ class Environment_Vec(gym.Env):
         self.car.update(acceleration, steering_angle)
         new_dist = np.linalg.norm(self.car.pos - self.goal_pos)
 
-        # if params.reward_distance != 0,
+        # ifself.params.reward_distance != 0,
         # then the environment rewards you for moving closer to the goal
-        dist_reward = (old_dist - new_dist) * params.reward_distance
+        dist_reward = (old_dist - new_dist) *self.params.reward_distance
 
         observation_vector = self.get_observation()
         targets = observation_vector[1:].reshape((-1, 2))
@@ -200,33 +199,33 @@ class Environment_Vec(gym.Env):
         relative_goal_position = self.car.pos - self.goal_pos
         x_distance = abs(relative_goal_position[0])
 
-        if x_distance > params.x_tolerance:
-            return observation_vector, params.reward_collision, True
+        if x_distance >self.params.x_tolerance:
+            return observation_vector,self.params.reward_collision, True
 
         if self.polar_coords:
             distances = targets[:, 0]
-            distances = distances * params.distance_rescale
+            distances = distances *self.params.distance_rescale
         else:
-            targets = targets * params.distance_rescale
+            targets = targets *self.params.distance_rescale
             distances = np.linalg.norm(targets, axis=1)
 
         # we have moved out of the simulation domain
-        if new_dist > params.max_dist * self.initial_dist:
-            return observation_vector, params.reward_collision, True
+        if new_dist >self.params.max_dist * self.initial_dist:
+            return observation_vector,self.params.reward_collision, True
 
         rel_goal_dist = distances[0]
         if rel_goal_dist < 1 / 2 * (self.car_dim + self.goal_dim):
-            return observation_vector, params.reward_goal, True
+            return observation_vector,self.params.reward_goal, True
 
         rel_obs_dist = distances[1:]
         if np.any(rel_obs_dist < 1 / 2 * (self.car_dim + self.obs_dim)):
-            return observation_vector, params.reward_collision, True
+            return observation_vector,self.params.reward_collision, True
 
         self.steps += 1
-        if self.steps > params.timeout:
-            return observation_vector, params.reward_timestep + dist_reward, True
+        if self.steps >self.params.timeout:
+            return observation_vector,self.params.reward_timestep + dist_reward, True
 
-        return observation_vector, params.reward_timestep + dist_reward, False
+        return observation_vector,self.params.reward_timestep + dist_reward, False
 
     def sample_action(self):
         # for atari, the actions are simply numbers

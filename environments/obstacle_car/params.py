@@ -1,10 +1,10 @@
 # parameters for setup of environment
 R = 400
 
-screen_size = (400, 400)
+screen_size = (R, R)
 car_size = (10, 10)
 obstacle_size = (10, 10)
-obs_x_spread = 200
+obs_x_spread = R/2
 goal_size = (40, 40)
 
 num_obstacles = 8
@@ -13,7 +13,7 @@ x_tolerance = R / 4
 
 # parameters for mrp
 reward_goal = 2.
-reward_distance = 0.005
+reward_distance = 0.000
 reward_collision = -4.
 reward_timestep = -0.1
 timeout = 600
