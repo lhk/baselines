@@ -18,36 +18,35 @@ def train(params, num_timesteps, seed):
                             intra_op_parallelism_threads=ncpu,
                             inter_op_parallelism_threads=ncpu)
     config.gpu_options.allow_growth=True
-    tf.Session(config=config).__enter__()
+    sess = tf.Session(config=config)
+    with sess:
 
-    def make_env():
-        #env = gym.make(env_id)
-        env = Environment_Vec(params, polar_coords=True)
-        env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
-        return env
+        def make_env():
+            #env = gym.make(env_id)
+            env = Environment_Vec(params, polar_coords=True)
+            env = bench.Monitor(env, logger.get_dir(), allow_early_resets=True)
+            return env
 
-    env = DummyVecEnv([make_env])
-    env = VecNormalize(env)
+        env = DummyVecEnv([make_env])
+        env = VecNormalize(env)
 
-    set_global_seeds(seed)
-    policy = MlpPolicy
-    #model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
-    #                   lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
-    #                   ent_coef=0.0,
-    #                   lr=3e-4,
-    #                   cliprange=0.2,
-    #                   total_timesteps=num_timesteps)
+        set_global_seeds(seed)
+        policy = MlpPolicy
+        #model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
+        #                   lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
+        #                   ent_coef=0.0,
+        #                   lr=3e-4,
+        #                   cliprange=0.2,
+        #                   total_timesteps=num_timesteps)
 
-    model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
-                       lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
-                       ent_coef=0.0,
-                       lr=3e-4,
-                       cliprange=0.2,
-                       total_timesteps=num_timesteps)
+        model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
+                           lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
+                           ent_coef=0.0,
+                           lr=3e-4,
+                           cliprange=0.2,
+                           total_timesteps=num_timesteps)
 
-
-    return model, env
-
+    tf.reset_default_graph()
 
 import environments.obstacle_car.params as params
 import itertools
@@ -68,7 +67,7 @@ def main():
         params.x_tolerance = R / 4
 
         logger.configure(dir="/tmp/car_{}_{}_{}".format(R, d, o))
-        model, env = train(params, num_timesteps=int(50000), seed=args.seed)
+        train(params, num_timesteps=int(50000), seed=args.seed)
 
 
 
