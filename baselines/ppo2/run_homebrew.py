@@ -54,7 +54,7 @@ import itertools
 def main():
     args = mujoco_arg_parser().parse_args()
 
-    Rs = [100, 200, 400, 800]
+    Rs = [100, 200, 400]
     ds = [0.000, 0.005]
     obs = [0, 4, 8]
 
@@ -66,8 +66,23 @@ def main():
         params.distance_rescale = R / 4  # only used in radial environment
         params.x_tolerance = R / 4
 
-        logger.configure(dir="/tmp/car_{}_{}_{}".format(R, d, o))
+        logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}".format(R, d, o))
         train(params, num_timesteps=int(50000), seed=args.seed)
+
+    Rs = [400, 800]
+    ds = [0.000, 0.005]
+    obs = [8, 12]
+
+    for R, d, o in itertools.product(Rs, ds, obs):
+        print("training on {}, {}, {}".format(R, d, o))
+        params.R = R
+        params.screen_size = (R, R)
+        params.num_obstacles = o
+        params.distance_rescale = R / 4  # only used in radial environment
+        params.x_tolerance = R / 4
+
+        logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}_longer".format(R, d, o))
+        train(params, num_timesteps=int(500000), seed=args.seed)
 
 
 
