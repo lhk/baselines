@@ -81,6 +81,8 @@ def main():
         params.distance_rescale = R / 4  # only used in radial environment
         params.x_tolerance = R / 4
 
+        params.reward_distance = d
+
         logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}_longer".format(R, d, o))
         train(params, num_timesteps=int(500000), seed=args.seed)
 
