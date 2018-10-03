@@ -69,7 +69,7 @@ def main():
         logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}".format(R, d, o))
         train(params, num_timesteps=int(50000), seed=args.seed)
 
-    Rs = [400, 800]
+    Rs = [400, 600, 800]
     ds = [0.000, 0.005]
     obs = [8, 12]
 
