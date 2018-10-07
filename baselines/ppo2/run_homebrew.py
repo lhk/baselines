@@ -9,7 +9,7 @@ def train(params, num_timesteps, seed):
     from baselines.common import set_global_seeds
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.ppo2 import ppo2
-    from baselines.ppo2.policies import MlpPolicy
+    from baselines.ppo2.policies import HomebrewPolicy
     import gym
     import tensorflow as tf
     from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
@@ -31,7 +31,7 @@ def train(params, num_timesteps, seed):
         env = VecNormalize(env)
 
         set_global_seeds(seed)
-        policy = MlpPolicy
+        policy = HomebrewPolicy
         #model = ppo2.learn(policy=policy, env=env, nsteps=2048, nminibatches=32,
         #                   lam=0.95, gamma=0.99, noptepochs=10, log_interval=1,
         #                   ent_coef=0.0,
@@ -54,9 +54,9 @@ import itertools
 def main():
     args = mujoco_arg_parser().parse_args()
 
-    Rs = [100, 200, 400]
+    Rs = [400]
     ds = [0.000, 0.005]
-    obs = [0, 4, 8]
+    obs = [0, 8]
 
     for R, d, o in itertools.product(Rs, ds, obs):
         print("training on {}, {}, {}".format(R, d, o))
@@ -68,11 +68,13 @@ def main():
 
         params.reward_distance = d
 
+        continue
+
         logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}".format(R, d, o))
         train(params, num_timesteps=int(50000), seed=args.seed)
 
-    Rs = [400, 600, 800]
-    ds = [0.000, 0.005]
+    Rs = [800, 600, 400]
+    ds = [0.005, 0.0]
     obs = [8, 12]
 
     for R, d, o in itertools.product(Rs, ds, obs):
@@ -82,11 +84,11 @@ def main():
         params.num_obstacles = o
         params.distance_rescale = R / 4  # only used in radial environment
         params.x_tolerance = R / 4
-
         params.reward_distance = d
 
+
         logger.configure(dir="/tmp/car_dist{}_rew{}_obs{}_longer".format(R, d, o))
-        train(params, num_timesteps=int(500000), seed=args.seed)
+        train(params, num_timesteps=int(200000), seed=args.seed)
 
 
 

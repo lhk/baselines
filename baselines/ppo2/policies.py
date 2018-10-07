@@ -154,10 +154,10 @@ class HomebrewPolicy(object):
             processed_x = tf.layers.flatten(processed_x)
             pi_h1 = activ(fc(processed_x, 'pi_fc1', nh=64, init_scale=np.sqrt(2)))
             pi_h2 = activ(fc(pi_h1, 'pi_fc2', nh=32, init_scale=np.sqrt(2)))
-            pi_h3 = activ(fc(pi_h2, 'pi_fc2', nh=16, init_scale=np.sqrt(2)))
+            pi_h3 = activ(fc(pi_h2, 'pi_fc3', nh=16, init_scale=np.sqrt(2)))
             vf_h1 = activ(fc(processed_x, 'vf_fc1', nh=64, init_scale=np.sqrt(2)))
             vf_h2 = activ(fc(vf_h1, 'vf_fc2', nh=32, init_scale=np.sqrt(2)))
-            vf_h3 = activ(fc(vf_h2, 'vf_fc2', nh=16, init_scale=np.sqrt(2)))
+            vf_h3 = activ(fc(vf_h2, 'vf_fc3', nh=16, init_scale=np.sqrt(2)))
             vf = fc(vf_h3, 'vf', 1)[:,0]
 
             self.pd, self.pi = self.pdtype.pdfromlatent(pi_h3, init_scale=0.01)
